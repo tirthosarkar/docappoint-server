@@ -15,12 +15,12 @@ const port = process.env.PORT || 5000;
 app.use(
   cors({
     origin: process.env.CLIENT_URL,
-    credentials: true, // 🔥 VERY IMPORTANT
+    credentials: true,
   }),
 );
 
 app.use(express.json());
-app.use(cookieParser()); // 🔥 FIX
+app.use(cookieParser());
 
 /* ================= MONGODB ================= */
 
@@ -45,7 +45,6 @@ const logger = (req, res, next) => {
 
 const verifyToken = async (req, res, next) => {
   try {
-    // 🔥 COOKIE FIRST (PRIMARY)
     const token =
       req.cookies?.token || req.headers.authorization?.split(' ')[1];
 
@@ -212,7 +211,7 @@ async function run() {
       res.send('DocAppoint Server Running');
     });
 
-    await client.db('admin').command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
 
     console.log('MongoDB Connected Successfully');
   } catch (err) {
