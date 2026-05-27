@@ -1,11 +1,18 @@
-const express = require('express');
-const dotenv = require('dotenv');
-const cors = require('cors');
-const cookieParser = require('cookie-parser');
+const express = require("express");
+const dotenv = require("dotenv");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
 
-const { createRemoteJWKSet, jwtVerify } = require('jose-cjs');
+const {
+  createRemoteJWKSet,
+  jwtVerify,
+} = require("jose-cjs");
 
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const {
+  MongoClient,
+  ServerApiVersion,
+  ObjectId,
+} = require("mongodb");
 
 dotenv.config();
 
@@ -19,7 +26,7 @@ app.use(
   cors({
     origin: process.env.CLIENT_URL,
     credentials: true,
-  }),
+  })
 );
 
 app.use(express.json());
@@ -48,23 +55,33 @@ const logger = (req, res, next) => {
 
 /* ================= VERIFY TOKEN ================= */
 
-const verifyToken = async (req, res, next) => {
+const verifyToken = async (
+  req,
+  res,
+  next
+) => {
   try {
     const token =
-      req.cookies?.token || req.headers.authorization?.split(' ')[1];
+      req.cookies?.token ||
+      req.headers.authorization?.split(
+        " "
+      )[1];
 
     if (!token) {
       return res.status(401).send({
         success: false,
-        message: 'Unauthorized Access',
+        message: "Unauthorized Access",
       });
     }
 
     const JWKS = createRemoteJWKSet(
-      new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
+      new URL(
+        `${process.env.CLIENT_URL}/api/auth/jwks`
+      )
     );
 
-    const { payload } = await jwtVerify(token, JWKS);
+    const { payload } =
+      await jwtVerify(token, JWKS);
 
     req.user = payload;
 
@@ -74,7 +91,7 @@ const verifyToken = async (req, res, next) => {
 
     return res.status(401).send({
       success: false,
-      message: 'Invalid Token',
+      message: "Invalid Token",
     });
   }
 };
@@ -85,90 +102,119 @@ async function run() {
   try {
     // await client.connect();
 
-    const db = client.db('docappointdb');
+    const db =
+      client.db("docappointdb");
 
-    const appointmentCollection = db.collection('appointment');
+    const appointmentCollection =
+      db.collection("appointment");
 
-    const bookingCollection = db.collection('bookings');
+    const bookingCollection =
+      db.collection("bookings");
 
-    const reviewCollection = db.collection('reviews');
+    const reviewCollection =
+      db.collection("reviews");
 
     /* ================= ROOT ================= */
 
-    app.get('/', (req, res) => {
-      res.send('DocAppoint Server Running');
+    app.get("/", (req, res) => {
+      res.send(
+        "DocAppoint Server Running"
+      );
     });
 
     /* ================= GET ALL DOCTORS ================= */
 
-    app.get('/appointment', async (req, res) => {
-      try {
-        const { search } = req.query;
+    app.get(
+      "/appointment",
+      async (req, res) => {
+        try {
+          const { search } =
+            req.query;
 
-        let query = {};
+          let query = {};
 
-        if (search) {
-          query = {
-            name: {
-              $regex: search,
-              $options: 'i',
-            },
-          };
+          if (search) {
+            query = {
+              name: {
+                $regex: search,
+                $options: "i",
+              },
+            };
+          }
+
+          const result =
+            await appointmentCollection
+              .find(query)
+              .toArray();
+
+          res.send(result);
+        } catch (error) {
+          console.log(error);
+
+          res.status(500).send({
+            success: false,
+            message:
+              "Failed to fetch doctors",
+          });
         }
-
-        const result = await appointmentCollection.find(query).toArray();
-
-        res.send(result);
-      } catch (error) {
-        console.log(error);
-
-        res.status(500).send({
-          success: false,
-          message: 'Failed to fetch doctors',
-        });
       }
-    });
+    );
 
     /* ================= FEATURED ================= */
 
-    app.get('/featured', async (req, res) => {
-      try {
-        const result = await appointmentCollection
-          .find()
-          .sort({ rating: -1 })
-          .limit(3)
-          .toArray();
+    app.get(
+      "/featured",
+      async (req, res) => {
+        try {
+          const result =
+            await appointmentCollection
+              .find()
+              .sort({ rating: -1 })
+              .limit(3)
+              .toArray();
 
-        res.send(result);
-      } catch (error) {
-        console.log(error);
+          res.send(result);
+        } catch (error) {
+          console.log(error);
 
-        res.status(500).send({
-          success: false,
-          message: 'Failed to fetch featured doctors',
-        });
+          res.status(500).send({
+            success: false,
+            message:
+              "Failed to fetch featured doctors",
+          });
+        }
       }
-    });
+    );
 
     /* ================= SINGLE DOCTOR ================= */
 
     app.get(
-      '/appointment/:appointmentId',
+      "/appointment/:appointmentId",
       logger,
       verifyToken,
       async (req, res) => {
         try {
-          const { appointmentId } = req.params;
+          const {
+            appointmentId,
+          } = req.params;
 
-          const result = await appointmentCollection.findOne({
-            _id: new ObjectId(appointmentId),
-          });
+          const result =
+            await appointmentCollection.findOne(
+              {
+                _id: new ObjectId(
+                  appointmentId
+                ),
+              }
+            );
 
           if (!result) {
-            return res.status(404).send({
-              success: false,
-              message: 'Doctor not found',
-            });
+            return res
+              .status(404)
+              .send({
+                success: false,
+                message:
+                  "Doctor not found",
+              });
           }
 
           res.send(result);
@@ -177,188 +223,260 @@ async function run() {
 
           res.status(500).send({
             success: false,
-            message: 'Failed to fetch doctor',
+            message:
+              "Failed to fetch doctor",
           });
         }
-      },
+      }
     );
 
     /* ================= CREATE BOOKING ================= */
 
-    app.post('/bookings', verifyToken, async (req, res) => {
-      try {
-        const result = await bookingCollection.insertOne({
-          ...req.body,
-          createdAt: new Date(),
-        });
+    app.post(
+      "/bookings",
+      verifyToken,
+      async (req, res) => {
+        try {
+          const result =
+            await bookingCollection.insertOne(
+              {
+                ...req.body,
+                createdAt:
+                  new Date(),
+              }
+            );
 
-        res.send({
-          success: true,
-          message: 'Booking successful',
-          insertedId: result.insertedId,
-        });
-      } catch (error) {
-        console.log(error);
+          res.send({
+            success: true,
+            message:
+              "Booking successful",
+            insertedId:
+              result.insertedId,
+          });
+        } catch (error) {
+          console.log(error);
 
-        res.status(500).send({
-          success: false,
-          message: 'Failed to book appointment',
-        });
+          res.status(500).send({
+            success: false,
+            message:
+              "Failed to book appointment",
+          });
+        }
       }
-    });
+    );
 
     /* ================= GET USER BOOKINGS ================= */
 
-    app.get('/bookings/:email', async (req, res) => {
-      try {
-        const result = await bookingCollection
-          .find({
-            userEmail: req.params.email,
-          })
-          .toArray();
+    app.get(
+      "/bookings/:email",
+      async (req, res) => {
+        try {
+          const result =
+            await bookingCollection
+              .find({
+                userEmail:
+                  req.params.email,
+              })
+              .toArray();
 
-        res.send(result);
-      } catch (error) {
-        console.log(error);
+          res.send(result);
+        } catch (error) {
+          console.log(error);
 
-        res.status(500).send({
-          success: false,
-          message: 'Failed to fetch bookings',
-        });
+          res.status(500).send({
+            success: false,
+            message:
+              "Failed to fetch bookings",
+          });
+        }
       }
-    });
+    );
 
     /* ================= UPDATE BOOKING ================= */
 
-    app.patch('/bookings/:id', async (req, res) => {
-      try {
-        const result = await bookingCollection.updateOne(
-          {
-            _id: new ObjectId(req.params.id),
-          },
-          {
-            $set: {
-              patientName: req.body.patientName,
-              date: req.body.date,
-              appointmentTime: req.body.appointmentTime,
-              reason: req.body.reason,
-            },
-          },
-        );
+    app.patch(
+      "/bookings/:id",
+      async (req, res) => {
+        try {
+          const result =
+            await bookingCollection.updateOne(
+              {
+                _id: new ObjectId(
+                  req.params.id
+                ),
+              },
+              {
+                $set: {
+                  patientName:
+                    req.body
+                      .patientName,
+                  date: req.body.date,
+                  appointmentTime:
+                    req.body
+                      .appointmentTime,
+                  reason:
+                    req.body.reason,
+                },
+              }
+            );
 
-        res.send({
-          success: true,
-          message: 'Appointment updated successfully',
-          modifiedCount: result.modifiedCount,
-        });
-      } catch (error) {
-        console.log(error);
+          res.send({
+            success: true,
+            message:
+              "Appointment updated successfully",
+            modifiedCount:
+              result.modifiedCount,
+          });
+        } catch (error) {
+          console.log(error);
 
-        res.status(500).send({
-          success: false,
-          message: 'Failed to update appointment',
-        });
+          res.status(500).send({
+            success: false,
+            message:
+              "Failed to update appointment",
+          });
+        }
       }
-    });
+    );
 
     /* ================= DELETE BOOKING ================= */
 
-    app.delete('/bookings/:id', async (req, res) => {
-      try {
-        const result = await bookingCollection.deleteOne({
-          _id: new ObjectId(req.params.id),
-        });
+    app.delete(
+      "/bookings/:id",
+      async (req, res) => {
+        try {
+          const result =
+            await bookingCollection.deleteOne(
+              {
+                _id: new ObjectId(
+                  req.params.id
+                ),
+              }
+            );
 
-        res.send({
-          success: true,
-          deletedCount: result.deletedCount,
-        });
-      } catch (error) {
-        console.log(error);
+          res.send({
+            success: true,
+            deletedCount:
+              result.deletedCount,
+          });
+        } catch (error) {
+          console.log(error);
 
-        res.status(500).send({
-          success: false,
-          message: 'Failed to delete appointment',
-        });
+          res.status(500).send({
+            success: false,
+            message:
+              "Failed to delete appointment",
+          });
+        }
       }
-    });
+    );
 
     /* ================= UPDATE PROFILE ================= */
 
-    app.patch('/users/:email', async (req, res) => {
-      try {
-        const { name, image } = req.body;
+    app.patch(
+      "/users/:email",
+      async (req, res) => {
+        try {
+          const { name, image } =
+            req.body;
 
-        const result = await bookingCollection.updateMany(
-          {
-            userEmail: req.params.email,
-          },
-          {
-            $set: {
-              patientName: name,
-              userImage: image,
-            },
-          },
-        );
+          const result =
+            await bookingCollection.updateMany(
+              {
+                userEmail:
+                  req.params.email,
+              },
+              {
+                $set: {
+                  patientName:
+                    name,
+                  userImage:
+                    image,
+                },
+              }
+            );
 
-        res.send({
-          success: true,
-          message: 'Profile updated successfully',
-          modifiedCount: result.modifiedCount,
-        });
-      } catch (error) {
-        console.log(error);
+          res.send({
+            success: true,
+            message:
+              "Profile updated successfully",
+            modifiedCount:
+              result.modifiedCount,
+          });
+        } catch (error) {
+          console.log(error);
 
-        res.status(500).send({
-          success: false,
-          message: 'Failed to update profile',
-        });
+          res.status(500).send({
+            success: false,
+            message:
+              "Failed to update profile",
+          });
+        }
       }
-    });
+    );
 
     /* ================= REVIEWS ================= */
 
-    app.post('/reviews', verifyToken, async (req, res) => {
-      try {
-        const result = await reviewCollection.insertOne({
-          ...req.body,
-          createdAt: new Date(),
-        });
+    app.post(
+      "/reviews",
+      verifyToken,
+      async (req, res) => {
+        try {
+          const result =
+            await reviewCollection.insertOne(
+              {
+                ...req.body,
+                createdAt:
+                  new Date(),
+              }
+            );
 
-        res.send({
-          success: true,
-          insertedId: result.insertedId,
-        });
-      } catch (error) {
-        console.log(error);
+          res.send({
+            success: true,
+            insertedId:
+              result.insertedId,
+          });
+        } catch (error) {
+          console.log(error);
 
-        res.status(500).send({
-          success: false,
-          message: 'Failed to add review',
-        });
+          res.status(500).send({
+            success: false,
+            message:
+              "Failed to add review",
+          });
+        }
       }
-    });
+    );
 
-    app.get('/reviews/:doctorName', async (req, res) => {
-      try {
-        const result = await reviewCollection
-          .find({
-            doctorName: req.params.doctorName,
-          })
-          .toArray();
+    app.get(
+      "/reviews/:doctorName",
+      async (req, res) => {
+        try {
+          const result =
+            await reviewCollection
+              .find({
+                doctorName:
+                  req.params
+                    .doctorName,
+              })
+              .toArray();
 
-        res.send(result);
-      } catch (error) {
-        console.log(error);
+          res.send(result);
+        } catch (error) {
+          console.log(error);
 
-        res.status(500).send({
-          success: false,
-          message: 'Failed to fetch reviews',
-        });
+          res.status(500).send({
+            success: false,
+            message:
+              "Failed to fetch reviews",
+          });
+        }
       }
-    });
+    );
 
-    console.log('MongoDB Connected Successfully');
+    console.log(
+      "MongoDB Connected Successfully"
+    );
   } catch (err) {
     console.log(err);
   }
@@ -369,5 +487,7 @@ run();
 /* ================= SERVER ================= */
 
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  console.log(
+    `Server running on port ${port}`
+  );
 });
