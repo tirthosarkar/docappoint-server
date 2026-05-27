@@ -22,7 +22,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
 
     const db = client.db('docappointdb');
     const appointmentCollection = db.collection('appointment');
@@ -33,6 +33,12 @@ async function run() {
       //console.log(result);
       res.send(result);
     });
+
+ app.get('/featured', async (req, res) => {
+   const cursor = appointmentCollection.find().limit(3);
+   const result = await cursor.toArray();
+   res.send(result);
+ }); 
 
     app.get('/appointment/:appintId', async (req, res) => {
       const { appintId } = req.params;
